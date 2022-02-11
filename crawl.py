@@ -63,17 +63,30 @@ def search_query(driver, path, query):
 
     ## Search query
     driver.get("https://www.webofscience.com/wos/alldb/advanced-search")
-    # Load the page
-    wait.WebDriverWait(driver, 10).until(
-        expected_conditions.presence_of_element_located((By.XPATH, '//span[contains(@class, "mat-button-wrapper") and text()=" Clear "]')))
-    close_pendo_windows(driver)
+    max_retry = 3
+    retry_times = 0
+    while True: 
+        try:
+            close_pendo_windows(driver)
+            # Load the page
+            wait.WebDriverWait(driver, 10).until(
+                expected_conditions.presence_of_element_located((By.XPATH, '//span[contains(@class, "mat-button-wrapper") and text()=" Clear "]')))
 
-    # Clear the field
-    driver.find_element(By.XPATH, '//span[contains(@class, "mat-button-wrapper") and text()=" Clear "]').click()
-    # Insert the query
-    driver.find_element(By.XPATH, '//*[@id="advancedSearchInputArea"]').send_keys("{}".format(query))
-    # Click on the search button
-    driver.find_element(By.XPATH, '//span[contains(@class, "mat-button-wrapper") and text()=" Search "]').click()
+            # Clear the field
+            driver.find_element(By.XPATH, '//span[contains(@class, "mat-button-wrapper") and text()=" Clear "]').click()
+            # Insert the query
+            driver.find_element(By.XPATH, '//*[@id="advancedSearchInputArea"]').send_keys("{}".format(query))
+            # Click on the search button
+            driver.find_element(By.XPATH, '//span[contains(@class, "mat-button-wrapper") and text()=" Search "]').click()
+            break
+        except:
+            retry_times += 1
+            if retry_times > max_retry:
+                logging.error("Search exceeded max retries")
+                return False
+            else:
+                # Retry
+                logging.debug("Search retrying")
     # Wait for the query page
     try:
         wait.WebDriverWait(driver, 5).until(
@@ -142,7 +155,7 @@ def download_outbound(driver, default_download_path):
                 return False
             else:
                 # Retry
-                logging.debug("Retrying")
+                logging.debug("Crawl outbound retrying")
                 close_pendo_windows(driver)
                 # Click on "Cancel"
                 try:
