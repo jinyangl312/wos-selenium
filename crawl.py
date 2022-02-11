@@ -9,8 +9,17 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import wait, expected_conditions
 
 
+def wait_for_login(driver):
+    try:
+        driver.find_element(By.XPATH, '//h3[@class="wui-subtitle--app-signin-no-input"]')
+        input('Login before going next...\n')
+    except:
+        pass
+
+
 def switch_language_to_Eng(driver):
     # Switch language from zh-cn to english
+    close_pendo_windows(driver)
     try:
         driver.find_element(By.XPATH, '//button[text()=" 简体中文 "]').click()
         driver.find_element(By.XPATH, '//button[text()="English "]').click()
@@ -146,7 +155,7 @@ def download_outbound(driver, default_download_path):
                     if os.path.exists(default_download_path):
                         break
             # Download completed
-            assert os.path.exists(default_download_path)
+            assert os.path.exists(default_download_path), "File not found!"
             return True
         except:
             retry_times += 1            
@@ -159,7 +168,7 @@ def download_outbound(driver, default_download_path):
                 close_pendo_windows(driver)
                 # Click on "Cancel"
                 try:
-                    driver.find_element(By.XPATH, '//*[contains(@class, "mat-button-wrapper") and text()="Cancel"]').click()
+                    driver.find_element(By.XPATH, '//*[contains(@class, "mat-button-wrapper") and text()="Cancel "]').click()
                 except:
                     driver.refresh()
                 wait.WebDriverWait(driver, 10).until(
@@ -268,7 +277,7 @@ def start_session(driver, task_list, default_download_path):
                     )
 
     driver.get("https://www.webofscience.com/")
-    input('Please wait for the page to be loaded...\nLogin before going next...\n') 
+    wait_for_login(driver)
     switch_language_to_Eng(driver)
 
     # Start Query
