@@ -1,4 +1,5 @@
 # encoding: utf-8
+from logging import handlers
 import shutil
 import time
 import logging
@@ -69,6 +70,15 @@ def mark_flag(path):
 def search_query(driver, path, query):
     os.makedirs(path, exist_ok=True)
     logging.info(path)
+
+    # Close extra windows
+    if not len(driver.window_handles) == 1:
+        handles = driver.window_handles
+        for i_handle in range(len(handles)-1, 0, -1): # traverse in reverse order
+            # Switch to the window and load the page
+            driver.switch_to.window(handles[i_handle])
+            driver.close()
+        driver.switch_to.window(handles[0])
 
     ## Search query
     driver.get("https://www.webofscience.com/wos/alldb/advanced-search")
@@ -286,13 +296,13 @@ def start_session(driver, task_list, default_download_path):
 
         # Search query
         if not search_query(driver, path, query):
-            # No results (or search failed)
+            # Stop if no results (or search failed)
             mark_flag(path)
             continue
 
         # Download the outbound   
         if not download_outbound(driver, default_download_path):
-            # Download failed for some reason
+            # Stop if download failed for some reason
             continue     
 
         # Deal with the outbound   
