@@ -211,7 +211,7 @@ def process_record(driver, path, records_id):
         driver.find_element(By.XPATH, '//*[@id="show_more_authors_authors_txt_label"]').click()                
     except:
         pass
-    with open(os.path.join(path, f'record-{records_id}.data'), 'w', encoding='utf-8') as file:
+    with open(os.path.join(path, f'record-{records_id}.dat'), 'w', encoding='utf-8') as file:
         file.write(driver.page_source)
         logging.debug(f'record #{records_id} saved in {path}')  
 
