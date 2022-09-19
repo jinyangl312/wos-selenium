@@ -1,5 +1,6 @@
 # encoding: utf-8
 from logging import handlers
+import pathlib
 import shutil
 import time
 import logging
@@ -13,7 +14,7 @@ from selenium.webdriver.support import wait, expected_conditions
 def wait_for_login(driver):
     '''Wait for the user to login if wos cannot be accessed directly.'''
     try:
-        driver.find_element(By.XPATH, '//div[@class="shibboleth-login-form"]')
+        driver.find_element(By.XPATH, '//div[contains(@class, "shibboleth-login-form")]')
         input('Login before going next...\n')
     except:
         pass
@@ -21,12 +22,18 @@ def wait_for_login(driver):
 
 def switch_language_to_Eng(driver):
     '''Switch language from zh-cn to English.'''
+
+    wait.WebDriverWait(driver, 10).until(
+        expected_conditions.presence_of_element_located((By.XPATH, '//*[contains(@name, "search-main-box")]')))
+
     close_pendo_windows(driver)
     try:
-        driver.find_element(By.XPATH, '//button[text()[contains(string(), " 简体中文 ")]]').click()
+        driver.find_element(By.XPATH, '//*[normalize-space(text())="简体中文"]').click()
         driver.find_element(By.XPATH, '//button[@lang="en"]').click()
     except:
-        pass
+        close_pendo_windows(driver)
+        driver.find_element(By.XPATH, '//*[normalize-space(text())="简体中文"]').click()
+        driver.find_element(By.XPATH, '//button[@lang="en"]').click()
 
 
 def close_pendo_windows(driver):
@@ -58,15 +65,15 @@ def close_pendo_windows(driver):
         pass      
 
 
-def check_flag(path):
-    '''Check if the task has been searched (flag exists in path).'''
-    return os.path.exists(path) and 'completed.flag' in os.listdir(path) 
-
-
 def mark_flag(path):
-    '''Mark the task as completed (create a flag in path).'''
+    '''Create a flag in the path to mark the task as completed.'''
     with open(os.path.join(path, 'completed.flag'), 'w') as f:
         f.write('1')
+
+
+def check_flag(path):
+    '''Check if the flag in the path to check if task has been searched.'''
+    return os.path.exists(path) and 'completed.flag' in os.listdir(path) 
     
 
 def search_query(driver, path, query):
@@ -120,12 +127,13 @@ def search_query(driver, path, query):
             driver.find_element(By.XPATH, '//*[text()="Your search found no results"]')
             logging.warning(f'Your search found no results')
             # Mark as completed
-            mark_flag(path)
+            if not path == None:
+                mark_flag(path)
             return False
         except:
             # Search failed
-            driver.find_element(By.XPATH, '//div[@class()="error-code"]')
-            logging.error(driver.find_element(By.XPATH, '//div[@class()="error-code"]').text)
+            driver.find_element(By.XPATH, '//div[contains(@class, "error-code")]')
+            logging.error(driver.find_element(By.XPATH, '//div[contains(@class, "error-code")]').text)
             return False
     # Go to the next step
     return True
@@ -150,12 +158,12 @@ def download_outbound(driver, default_download_path):
             except:
                 driver.find_element(By.XPATH, '//button[contains(@class, "mat-menu-item") and @aria-label="Plain text file"]').click()
             # Click on "Records from:"
-            driver.find_element(By.XPATH, '//span[text()[contains(string(), "Records from:")]]').click()
+            driver.find_element(By.XPATH, '//*[text()[contains(string(), "Records from:")]]').click()
             # Click on "Export"
             driver.find_element(By.XPATH, '//span[contains(@class, "ng-star-inserted") and text()="Export"]').click()
             # Wait for download to complete
             for retry_download in range(4):
-                time.sleep(1)
+                time.sleep(2)
                 try:
                     # If there is any "Internal error"
                     wait.WebDriverWait(driver, 2).until(
@@ -182,26 +190,31 @@ def download_outbound(driver, default_download_path):
                     driver.find_element(By.XPATH, '//*[contains(@class, "mat-button-wrapper") and text()="Cancel "]').click()
                 except:
                     driver.refresh()
+                    time.sleep(1)
                 wait.WebDriverWait(driver, 10).until(
                     expected_conditions.presence_of_element_located((By.CLASS_NAME, 'title-link')))
             continue
 
 
-def process_outbound(driver, default_download_path, path):
+def process_outbound(driver, default_download_path, dst_path):
     '''Process the outbound downloaded to the default path set for the system.'''
+
     # Move the outbound to dest folder
     assert os.path.exists(default_download_path), "File not found!"
-    shutil.move(default_download_path, os.path.join(path, 'record.txt'))
-    logging.debug(f'Outbound saved in {path}')
+    if pathlib.Path(dst_path).is_dir():
+        dst_path = os.path.join(dst_path, 'record.txt')
+    shutil.move(default_download_path, dst_path)
+    logging.debug(f'Outbound saved in {dst_path}')
+
     # Load the downloaded outbound (for debug)
-    with open(os.path.join(path, 'record.txt'), "r", encoding='utf-8') as f_outbound:
+    with open(dst_path, "r", encoding='utf-8') as f_outbound:
         n_record_ref = len(re.findall("\nER\n", f_outbound.read()))
         assert n_record_ref == int("".join(driver.find_element(By.XPATH, '//span[contains(@class, "brand-blue")]').text.split(","))), "Records num do not match outbound num"
     return True
 
 
 def download_record(driver, path, records_id):
-    '''Download a page'''
+    '''Download the page to the path'''
     # Load the page or throw exception
     wait.WebDriverWait(driver, 10).until(
         expected_conditions.presence_of_element_located((By.XPATH, '//h2[contains(@class, "title")]')))
@@ -211,8 +224,9 @@ def download_record(driver, path, records_id):
         file.write(driver.page_source)
         logging.debug(f'record #{records_id} saved in {path}')
 
+
 def process_record(driver, path, records_id):
-    '''Parse a page'''
+    '''Parse a page to get certain statistics'''
     # Show all authors and save raw data
     try:
         driver.find_element(By.XPATH, '//button[text()="...More"]').click()                
@@ -223,11 +237,19 @@ def process_record(driver, path, records_id):
         logging.debug(f'record #{records_id} saved in {path}')  
 
 
-def roll_down(driver):
+def roll_down(driver, fold = 40):
     '''Roll down to the bottom of the page to load all results'''
-    for i_roll in range(1, 41):
+    for i_roll in range(1, fold+1):
         time.sleep(0.1)
         driver.execute_script(f'window.scrollTo(0, {i_roll * 500});') 
+
+
+def save_screenshot(driver, prefix, pic_path):
+    """Screenshot and save as a png"""
+
+    # paper_id + current_time
+    current_time = time.strftime("%Y%m%d-%H%M%S", time.localtime(time.time()))
+    driver.save_screenshot(f'{pic_path}{str(prefix)}_{current_time}.png')
 
 
 def process_windows(driver, path, records_id):
@@ -321,7 +343,7 @@ def start_session(driver, task_list, default_download_path):
 
     # Start Query
     for path, query in tqdm.tqdm(task_list):
-        if check_flag(path): continue
+        if not path == None and check_flag(path): continue
 
         # Search query
         if not search_query(driver, path, query):
@@ -341,6 +363,7 @@ def start_session(driver, task_list, default_download_path):
             continue
 
         # Search completed
-        mark_flag(path)
+        if not path == None:
+            mark_flag(path)
         
     driver.quit()
