@@ -60,7 +60,12 @@ def close_pendo_windows(driver):
         pass
     # Overlay
     try:
-        driver.find_element(By.XPATH, '//div[contains(@class, "cdk-overlay-container")').click()
+        driver.find_element(By.XPATH, '//div[contains(@class, "cdk-overlay-container")]').click()
+    except:
+        pass  
+    # Overlay dialog
+    try:
+        driver.find_element(By.XPATH, '//button[contains(@class, "_pendo-close-guide")]').click()
     except:
         pass      
 
@@ -229,7 +234,7 @@ def process_record(driver, path, records_id):
     '''Parse a page to get certain statistics'''
     # Show all authors and save raw data
     try:
-        driver.find_element(By.XPATH, '//button[text()="...More"]').click()                
+        driver.find_element(By.XPATH, '//*[text()="...More"]').click()                
     except:
         pass
     with open(os.path.join(path, f'record-{records_id}.dat'), 'w', encoding='utf-8') as file:
@@ -339,7 +344,7 @@ def start_session(driver, task_list, default_download_path):
         default_download_path += "/savedrecs.txt"
     driver.get("https://www.webofscience.com/")
     wait_for_login(driver)
-    switch_language_to_Eng(driver)
+    # switch_language_to_Eng(driver)
 
     # Start Query
     for path, query in tqdm.tqdm(task_list):
