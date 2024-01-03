@@ -24,3 +24,7 @@ jinyangl
 代码的逻辑：对于每个任务，首先模拟输入query进行高级检索，然后下载纯文本文件，移动到path中，再打开所有的结果页面，下载到path中。
 
 至今为止这大概是第一个针对新版WoS的爬虫，希望可以抛砖引玉。代码逻辑应该比较清晰，如果有其他需求可以自行修改，也欢迎与我交流（~~挖坑~~）。
+
+----
+更新网址：
+https://webofscience.clarivate.cn/wos/alldb/advanced-search
