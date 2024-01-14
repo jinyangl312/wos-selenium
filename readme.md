@@ -3,9 +3,9 @@
 ## Function
     python+selenium爬取web of science(WOS)的信息
 ## Base
-    基于@wos-selenium的
+    基于[jinyangl312/wos-selenium](https://github.com/jinyangl312/wos-selenium)
 ## New additions
-    在原有的基础上添加了获取一些重要信息的
+    在原有的基础上添加了获取一些重要信息的功能
 
 ## Some tips:
     我用的是校园网，无需登录
